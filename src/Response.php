@@ -35,33 +35,10 @@ class Response {
      * @return never
      */
     public function skickaJSON(): never {
-        $statusText = $this->getStatusMeddelande();
-        header("$statusText;Content-type:application/json;charset=utf-8");
+        http_response_code ($this->status);
+        header("Content-type:application/json;charset=utf-8");
         $json = json_encode($this->content, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
         echo $json;
         exit;
-    }
-
-    /**
-     * Konverterar status-koden till en HTTP-header
-     * @return string
-     */
-    private function getStatusMeddelande(): string {
-        switch ($this->status) {
-            case 200:
-                return "HTTP/1.1 200 OK";
-            case 400:
-                return "HTTP/1.1 400 Bad request";
-            case 401:
-                return "HTTP/1.1 401 Unauthorized";
-            case 403:
-                return "HTTP/1.1 403 Forbidden";
-            case 404:
-                return "HTTP/1.1 403 Not found";
-            case 405:
-                return "HTTP/1.1 405 Method not allowed";
-            default:
-                return "HTTP/1.1 500 Internal Server Error";
-        }
     }
 }

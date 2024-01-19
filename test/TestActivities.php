@@ -63,10 +63,48 @@ function test_HamtaEnAktivitet(): string {
 function test_SparaNyAktivitet(): string {
     $retur = "<h2>test_SparaNyAktivitet</h2>";
 
+    $nyAktivitet = "Aktivitet" . time();
+
     try {
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+    // Koppla databas
+    $db = connectDb();
+
+    // Starta transaktion
+    $db->beginTransaction();
+
+    // Spara tom aktivitet - Misslyckat
+    $svar=sparaNyAktivitet('');
+    if($svar->getStatus() === 400) {
+        $retur.= "<p class='ok'>Spara tom aktivitet misslyckades, som förväntat</p>";
+    } else {
+        $retur.= "<p class='error'>Spara tom aktivitet lyckades" . $svar->getStatus()
+        . " returnerades istället som förväntat 400</p>";
+    }
+
+    // Spara ny aktivitet - Lyckat
+    $svar=sparaNyAktivitet($nyAktivitet);
+    if($svar->getStatus() === 200) {
+        $retur.= "<p class='ok'>Spara aktivitet lyckades</p>";
+    } else {
+        $retur.= "<p class='error'>Spara ny aktivitet misslyckades, status" . $svar->getStatus()
+        . " returnerades istället som förväntat 200</p>";
+    }
+
+    // Spara ny aktivitet - Misslyckat
+    $svar=sparaNyAktivitet($nyAktivitet);
+    if($svar->getStatus() === 400) {
+        $retur.= "<p class='ok'>Spara duplicerad aktivitet misslyckades, som förväntat</p>";
+    } else {
+        $retur.= "<p class='error'>Spara duplicerad aktivitet misslyckades, status" . $svar->getStatus()
+        . " returnerades istället som förväntat 400</p>";
+        }
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
+    } finally {
+        // Återställa databasen
+        if($db) {
+            $db->rollBack();
+        }
     }
 
     return $retur;
