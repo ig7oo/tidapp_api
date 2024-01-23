@@ -280,7 +280,7 @@ function test_UppdateraAktivitet(): string {
         . print_r($svar-> getContent(), true) . "</p>";
     }
     
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+        
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
     } finally {
@@ -299,7 +299,60 @@ function test_UppdateraAktivitet(): string {
 function test_RaderaAktivitet(): string {
     $retur = "<h2>test_RaderaAktivitet</h2>";
     try {
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+        // Testa felaktigt id
+        $svar = raderaAktivitet('-1');
+        if ($svar->getStatus() === 400) {
+            $retur.= "<p class='ok'>Radera aktivitet med felaktigt id (-1) misslyckades, som förväntat</p>";
+        } else {
+            $retur.= "<p class='error'>Radera aktivitet med felaktigt id (-1) misslyckades.<br>" 
+            . $svar->getStatus() . "returnerades istället för förväntat 400</p>";
+        }
+
+        $svar = raderaAktivitet('0');
+        if ($svar->getStatus() === 400) {
+            $retur.= "<p class='ok'>Radera aktivitet med felaktigt id (0) misslyckades, som förväntat</p>";
+        } else {
+            $retur.= "<p class='error'>Radera aktivitet med felaktigt id (0) misslyckades.<br>" 
+            . $svar->getStatus() . "returnerades istället för förväntat 400</p>";
+        }
+
+        $svar = raderaAktivitet('3.14');
+        if ($svar->getStatus() === 400) {
+            $retur.= "<p class='ok'>Radera aktivitet med felaktigt id (3.14) misslyckades, som förväntat</p>";
+        } else {
+            $retur.= "<p class='error'>Radera aktivitet med felaktigt id (3.14) misslyckades.<br>" 
+            . $svar->getStatus() . "returnerades istället för förväntat 400</p>";
+        }
+        
+        // Testa radera befintlig
+        $db = connectDb();
+        $nyPost = sparaNyAktivitet('Ny aktivitet');
+        if ($nyPost->getStatus() === 200) {
+            $nyttId = (int) $nyPost->getContent()->id;
+        } else {
+            throw new Exception("Kan inte skapa ny aktivitet, tester avbryts");
+        }
+
+        var_dump($nyttId);
+        $svar = raderaAktivitet("$nyttId");
+        if ($svar->getStatus() === 200 && $svar->getContent()->result === true) {
+            $retur.= "<p class='ok'>Radera aktivitet fungerade</p>";
+        } else {
+            $retur.= "<p class='error'>Radera aktivitet misslyckades<br>"
+            . $svar->getStatus() . " och " . var_export($svar->getContent() -> result, true) 
+            . " returnerades istället för förväntat 200 och 'true'</p>";
+        }
+
+        // Testa radera som inte finns
+        $svar = raderaAktivitet("$nyttId");
+        if ($svar->getStatus() === 200 && $svar->getContent()->result === false) {
+            $retur.= "<p class='ok'>Radera aktivitet som inte finns fungerade</p>";
+        } else {
+            $retur.= "<p class='error'>Radera aktivitet som inte finns misslyckades<br>"
+            . $svar->getStatus() . " och " . print_r($svar->getContent() -> result, true)
+            . " returnerades istället för förväntat 200 och 'false'</p>";
+        }
+
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
     }

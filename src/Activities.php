@@ -25,7 +25,7 @@ function activities(Route $route, array $postData): Response {
             return uppdateraAktivitet( $route->getParams()[0],  $postData["activity"]);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::DELETE) {
-            return raderaAktivetet($route->getParams()[0]);
+            return raderaAktivitet($route->getParams()[0]);
         }
     } catch (Exception $exc) {
         return new Response($exc->getMessage(), 400);
@@ -189,5 +189,42 @@ function uppdateraAktivitet(string $id, string $aktivitet): Response {
  * @param string $id Id för posten som ska raderas
  * @return Response
  */
-function raderaAktivetet(string $id): Response {
+function raderaAktivitet(string $id): Response {
+    // Kontrollera indata
+    $kontrolleratId = filter_var($id, FILTER_VALIDATE_INT);
+    if($kontrolleratId === false || $kontrolleratId < 1) {
+        $retur = new stdClass();
+        $retur->error=['Bad request', 'Felaktigt angivet id'];
+        return new Response($retur, 400);
+    }
+
+    try {
+    // Koppla databas
+    $db = connectDb();
+
+    // Exekvera SQL
+    $stmt=$db->prepare("DELETE FROM aktiviteter WHERE id = :id");
+    $stmt->execute([':id' => $kontrolleratId]);
+
+    // Skicka svar
+    if($stmt->rowCount() === 1) {
+        $retur = new stdClass();
+        $retur->result=true;
+        $retur->message=['Radera lyckades', "1 rad raderades från databasen"];
+        
+    } else {
+        $retur = new stdClass();
+        $retur->result=false;
+        $retur->message=['Radera misslyckades', "Ingen rad raderades från databasen"];
+    }
+
+        return new Response($retur);
+    } catch (Exception $e) {
+        if($db) {
+        }
+        $retur = new stdClass();
+        $retur->error=['Bad request', 'Något gick fel vid databasanropet'
+       , $e->getMessage()];
+        return new Response($retur, 400);
+    }
 }
