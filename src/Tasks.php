@@ -55,59 +55,62 @@ function tasks(Route $route, array $postData): Response {
  * @return Response
  */
 function hamtaSida(string $sida, int $posterPerSida=10): Response {
-    // Kontrollera indata
+
+    //Kontrollera indata
     $sidnummer = filter_var($sida, FILTER_VALIDATE_INT);
-    if ($sidnummer === false || $sidnummer <1) {
+    if($sidnummer === false || $sidnummer<1) {
         $retur = new stdClass();
-        $retur -> error=["Bad request", "Felaktigt angivet sidnummer"];
+        $retur->error =["Bad request", "Felaktigt angivet sidnummer"];
         return new Response($retur, 400);
     }
-
-    // Koppla databas
+    //koppla databas
     $db = connectDb();
 
-    // Hämta poster
-    $stmt = $db ->query("SELECT COUNT(*) FROM uppgifter");
-    $antalPoster = $stmt -> fetchColumn();
+    //Hämta poster
+    $stmt = $db->query("SELECT COUNT(*) FROM uppgifter");
+    $antalPoster = $stmt->fetchColumn();
     if(!$antalPoster) {
-        $retur = new stdClass();
-        $retur -> error=["Inga poster kunde hittas"];
+        $retur=new stdClass();
+        $retur->error = ["Inga poster kunde hittas"];
         return new Response($retur, 400);
     }
 
     $antalSidor = ceil($antalPoster / $posterPerSida);
     if($sidnummer > $antalSidor) {
         $retur = new stdClass();
-        $retur -> error=["Bad request", 'Felaktigt sidnummer', "Det finns bara $antalSidor"];
+        $retur->error = ["Bad request", "Felaktigt sidnummer", "Det finns bara $antalSidor sidor"];
         return new Response($retur, 400);
     }
 
-    $forstaPost=($sidnummer-1) * $posterPerSida;
-    $stmt=$db->query("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn " 
-    . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetid=a.id "
-    . "ORDER BY datum "
-    . "LIMIT $forstaPost, $posterPerSida");
+    $forstaPost = ($sidnummer - 1) * $posterPerSida;
+    $stmt = $db->query("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
+        . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
+        . "ORDER BY datum "
+        . "LIMIT $forstaPost, $posterPerSida");
     $result=$stmt->fetchAll();
-    
-    $uppgifter=[];
-    foreach ($result as $row) {
-        $rad=new stdClass();
-        $rad->id=$row['id'];
-        $rad->activitiyId=$row['aktivitetId'];
-        $rad->date=$row['datum'];
-        $tid=new DateTime($row['tid']);
-        $rad->time=$tid->format("H:i");
-        $rad->activitiy=$row['namn'];
-        $rad->description=$row['beskrivning'];
-        $uppgifter[]=$rad;
+
+    $uppgifter = [];
+    foreach($result as $row) {
+        $rad = new stdClass();
+        $rad->id = $row["id"];
+        $rad->activityId=$row["aktivitetId"];
+        $rad->date=$row["datum"];
+        $rad->time=$row["tid"];
+        $tid = new DateTime($row["tid"]);
+        $rad->time = $tid->format("H:i");
+        $rad->activityId = $row["namn"];
+        $rad->description = $row["beskrivning"];
+        $uppgifter[] = $rad;
+
     }
 
-    // Returnera svar
+    //Returnera svar
     $retur = new stdClass();
     $retur->pages=$antalSidor;
     $retur->tasks=$uppgifter;
 
     return new Response($retur);
+
 }
 
 /**
@@ -117,7 +120,63 @@ function hamtaSida(string $sida, int $posterPerSida=10): Response {
  * @return Response
  */
 function hamtaDatum(string $from, string $tom): Response {
-    
+
+    //kontrollera indata
+    $fromDate = DateTimeImmutable::createFromFormat("Y-m-d", $from);
+    $tomDate = DateTimeImmutable::createFromFormat("Y-m-d", $tom);
+    $datumFel = [];
+
+    if($fromDate === false) {
+        $datumFel[] = "Ogiltig från datum";
+    }
+    if($tomDate === false) {
+        $datumFel[] = "Ogiltig till datum";
+    }
+    if($fromDate && $fromDate->format("Y-m-d")!==$from) {
+        $datumFel[] = "Ogiltig angivet från-datum";
+    }
+    if($tomDate && $tomDate->format("Y-m-d")!==$tom) {
+        $datumFel[] = "Ogiltig angivet till-datum";
+    }
+    if($fromDate && $tomDate &&$fromDate->format("Y-m-d") > $tomDate->format("Y-m-d")) {
+        $datumFel[] = "Från-datum får inte vara större än till datum";
+    }
+
+    if(count($datumFel)>0) {
+        $retur = new stdClass();
+        $retur->error = $datumFel;
+        array_unshift($retur->error, "Bad request");
+        return new Response($retur, 400);
+    }
+    //koppla databas
+    $db = connectDb();
+
+    //exekvera sql
+    $stmt = $db->prepare("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
+    . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
+    . "WHERE datum BETWEEN :from AND :to "
+    . "ORDER BY datum ");
+    $stmt->execute(["from"=>$fromDate->format("Y-m-d"), "to"=>$tomDate->format("Y-m-d")]);
+    $result=$stmt->fetchAll();
+
+    $uppgifter = [];
+    foreach($result as $row) {
+        $rad = new stdClass();
+        $rad->id = $row["id"];
+        $rad->activityId=$row["aktivitetId"];
+        $rad->date=$row["datum"];
+        $rad->time=$row["tid"];
+        $tid = new DateTime($row["tid"]);
+        $rad->time = $tid->format("H:i");
+        $rad->activityId = $row["namn"];
+        $rad->description = $row["beskrivning"];
+        $uppgifter[] = $rad;
+    }
+
+    //returnera svar
+    $retur = new stdClass();
+    $retur->tasks=$uppgifter;
+    return new Response($retur);
 }
 
 /**
