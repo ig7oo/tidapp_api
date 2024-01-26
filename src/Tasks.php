@@ -30,7 +30,7 @@ function tasklists(Route $route): Response {
  * @param array $postData Indata för behandling i angiven rutt
  * @return Response
  */
-function tasks(Route $route, array $postData): Response {
+function task(Route $route, array $postData): Response {
     try {
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::GET) {
             return hamtaEnskildUppgift($route->getParams()[0]);
@@ -39,11 +39,14 @@ function tasks(Route $route, array $postData): Response {
             return sparaNyUppgift($postData);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::PUT) {
-            return uppdateraUppgift( $route->getParams()[0], $postData);
+            return uppdateraUppgift($route->getParams()[0], $postData);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::DELETE) {
             return raderaUppgift($route->getParams()[0]);
         }
+        
+        // Lägg till en standard retur om inget av villkoren är uppfyllda
+        return new Response("Invalid request", 400);
     } catch (Exception $exc) {
         return new Response($exc->getMessage(), 400);
     }
