@@ -36,7 +36,7 @@ try {
             break;
         case "/task/":
             require_once './src/tasks.php';
-            $retur = tasks($route, $postData);
+            $retur = task($route, $postData);
             break;
         case "/compilation/":
             require_once './src/compilations.php';
