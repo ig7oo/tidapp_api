@@ -330,5 +330,38 @@ function uppdateraUppgift(string $id, array $postData): Response {
  * @return Response
  */
 function raderaUppgift(string $id): Response {
-    
+       // Kontrollera indata
+       $kontrolleraId=filter_var($id, FILTER_VALIDATE_INT);
+    if(!$kontrolleraId) {
+        $retur = new stdClass();
+        $retur->error = ["Bad request", "Felaktigt angivet id"];
+        return new Response($retur, 400);
+    }
+
+    if($kontrolleraId && $kontrolleraId<1) {
+        $retur = new stdClass();
+        $retur->error = ["Bad request", "Ogiltigt angivet id"];
+        return new Response($retur, 400);
+    }
+
+       // Koppla databas
+       $db = connectDb();
+
+       // Exekvera databasfråga
+       $stmt = $db->prepare("DELETE FROM uppgifter WHERE id=:id");
+       $stmt->execute(['id'=>$kontrolleraId]);
+
+       // Returnera svar
+       if($stmt->rowCount()===1) {
+        $retur = new stdClass();
+        $retur->result=true;
+        $retur->message = ["Radering lyckades", "1 post raderad"];
+    } else {
+        $retur = new stdClass();
+        $retur->result=false;
+        $retur->message = ["Radering misslyckades", "Ingen post raderad"];
+    }
+
+    return new Response($retur);
+
 }
