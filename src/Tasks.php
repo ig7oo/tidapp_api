@@ -101,7 +101,7 @@ function hamtaSida(string $sida, int $posterPerSida=10): Response {
         $rad->time=$row["tid"];
         $tid = new DateTime($row["tid"]);
         $rad->time = $tid->format("H:i");
-        $rad->activityId = $row["namn"];
+        $rad->activity = $row["namn"];
         $rad->description = $row["beskrivning"];
         $uppgifter[] = $rad;
 
@@ -275,7 +275,53 @@ function sparaNyUppgift(array $postData): Response {
  * @return Response
  */
 function uppdateraUppgift(string $id, array $postData): Response {
-    
+    /*
+    * Kontrollera indata
+    */
+    // Kontrollera id
+    $kontrolleratId=filter_var($id, FILTER_VALIDATE_INT);
+    if(!$kontrolleratId) {
+        $retur = new stdClass();
+        $retur->error = ["Bad request", "Felaktigt id"];
+        return new Response($retur, 400);
+    }
+    if($kontrolleratId<1) {
+        $retur = new stdClass();
+        $retur->error = ["Bad request", "Ogiltigt id"];
+        return new Response($retur, 400);
+    }
+
+    // Kontrollera postdata
+    $error= kontrolleraIndata($postData);
+    if(count($error)!==0) {
+        $retur = new stdClass();
+        $retur->error = $error;
+        return new Response($retur, 400);
+    }
+
+    // Koppla databas
+    $db = connectDb();
+
+    // Exekvera databasfråga
+    $stmt = $db->prepare("UPDATE uppgifter SET "
+    . "datum=:date, tid=:time, aktivitetId=:activityId, beskrivning=:description "
+    . "WHERE id=:id");
+    $stmt->execute(['date'=>$postData["date"], "time"=>$postData["time"], "activityId"=>$postData["activityId"], 
+    "description"=>$postData["description"] ??'', "id"=>$kontrolleratId]);
+
+    // Returnera svar
+    if($stmt->rowCount()===1) {
+        $retur = new stdClass();
+        $retur->result=true;
+        $retur->message = ["Uppdatering lyckades", "1 post uppdaterad"];
+    } else {
+        $retur = new stdClass();
+        $retur->result=false;
+        $retur->message = ["Uppdatering misslyckades", "Ingen post uppdaterad"];
+    }
+
+    return new Response($retur);
+
 }
 
 /**
