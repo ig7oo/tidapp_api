@@ -462,7 +462,9 @@ function test_KontrolleraIndata(): string {
         if ($svar->getStatus() === 400) {
             $retur .= "<p class='ok'>Kontrollera indata misslyckades med ogiltigt id, som förväntat</p>";
         } else {
-            $retur .= "<p class='error'>Kontrollera indata misslyckades, ogiltigt id</p>";
+            $retur .= "<p class='error'>Kontrollera indata misslyckades, ogiltigt id"
+            . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+            . print_r($svar->getContent(), true) . "</p>";
         }
 
         // Testa ogiltigt id (mindre än 1)
@@ -470,8 +472,33 @@ function test_KontrolleraIndata(): string {
         if ($svar->getStatus() === 400) {
             $retur .= "<p class='ok'>Kontrollera indata misslyckades med ogiltigt id, som förväntat</p>";
         } else {
-            $retur .= "<p class='error'>Kontrollera indata misslyckades, ogiltigt id</p>";
+            $retur .= "<p class='error'>Kontrollera indata misslyckades, ogiltigt id"
+            . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+            . print_r($svar->getContent(), true) . "</p>";
         }
+
+        // Misslycka med att sätta datum i framtiden 
+        $svar->getContent()->date = date("Y-m-d", strtotime("+1 day"));
+        if ($svar->getStatus() === 400) {
+            $retur.= "<p class='ok'>Kontrollera indata misslyckades med datum i framtiden, som förväntat</p>";
+        } else {
+            $retur.= "<p class='error'>Kontrollera indata misslyckades, datum i framtiden"
+            . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+            . print_r($svar->getContent(), true) . "</p>";
+        }
+
+
+        // Misslyckas med felaktigt datum=2024-01-30
+        $svar->getContent()->date = "2024-01-30";
+        if ($svar->getStatus() === 400) {
+            $retur.= "<p class='ok'>Kontrollera indata misslyckades med felaktigt datum, som förväntat</p>";
+        } else {
+            $retur.= "<p class='error'>Kontrollera indata misslyckades, felaktigt datum"
+            . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+            . print_r($svar->getContent(), true) . "</p>";
+        }
+
+
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Ett fel uppstod: {$ex->getMessage()}</p>";
     }
@@ -560,6 +587,5 @@ function test_RaderaUppgift(): string {
             $db->rollBack();
         }
     }
-
     return $retur;
 }
