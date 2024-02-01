@@ -1,7 +1,7 @@
 <?php
 
 declare (strict_types=1);
-require_once __DIR__ . '/activities.php';
+require_once __DIR__ . '/Activities.php';
 
 /**
  * Hämtar en lista med alla uppgifter och tillhörande aktiviteter 
@@ -30,7 +30,7 @@ function tasklists(Route $route): Response {
  * @param array $postData Indata för behandling i angiven rutt
  * @return Response
  */
-function task(Route $route, array $postData): Response {
+function tasks(Route $route, array $postData): Response {
     try {
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::GET) {
             return hamtaEnskildUppgift($route->getParams()[0]);
@@ -39,14 +39,11 @@ function task(Route $route, array $postData): Response {
             return sparaNyUppgift($postData);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::PUT) {
-            return uppdateraUppgift($route->getParams()[0], $postData);
+            return uppdateraUppgift( $route->getParams()[0], $postData);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::DELETE) {
             return raderaUppgift($route->getParams()[0]);
         }
-        
-        // Lägg till en standard retur om inget av villkoren är uppfyllda
-        return new Response("Invalid request", 400);
     } catch (Exception $exc) {
         return new Response($exc->getMessage(), 400);
     }
@@ -58,62 +55,59 @@ function task(Route $route, array $postData): Response {
  * @return Response
  */
 function hamtaSida(string $sida, int $posterPerSida=10): Response {
-
-    //Kontrollera indata
-    $sidnummer = filter_var($sida, FILTER_VALIDATE_INT);
-    if($sidnummer === false || $sidnummer<1) {
-        $retur = new stdClass();
-        $retur->error =["Bad request", "Felaktigt angivet sidnummer"];
+    // Kontrollera indata
+    $sidnummer= filter_var($sida, FILTER_VALIDATE_INT);
+    if($sidnummer===false || $sidnummer<1) {
+        $retur=new stdClass();
+        $retur->error=["Bad request", "Felaktigt angivet sidnummer"];
         return new Response($retur, 400);
     }
-    //koppla databas
-    $db = connectDb();
-
-    //Hämta poster
-    $stmt = $db->query("SELECT COUNT(*) FROM uppgifter");
-    $antalPoster = $stmt->fetchColumn();
+    
+    // Koppla databas
+    $db= connectDb();
+    
+    // Hämta poster
+    $stmt=$db->query("SELECT COUNT(*) FROM uppgifter");
+    $antalPoster=$stmt->fetchColumn();
     if(!$antalPoster) {
         $retur=new stdClass();
-        $retur->error = ["Inga poster kunde hittas"];
+        $retur->error=['Inga poster kunde hittas'];
         return new Response($retur, 400);
     }
-
-    $antalSidor = ceil($antalPoster / $posterPerSida);
-    if($sidnummer > $antalSidor) {
+    
+    $antalSidor=ceil($antalPoster/$posterPerSida);
+    if($sidnummer>$antalSidor) {
         $retur = new stdClass();
-        $retur->error = ["Bad request", "Felaktigt sidnummer", "Det finns bara $antalSidor sidor"];
+        $retur->error=['Bad request', 'Felaktigt sidnummer', "Det finns bara $antalSidor sidor"];
         return new Response($retur, 400);
     }
-
-    $forstaPost = ($sidnummer - 1) * $posterPerSida;
-    $stmt = $db->query("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
-        . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
-        . "ORDER BY datum "
-        . "LIMIT $forstaPost, $posterPerSida");
+    
+    $forstaPost=($sidnummer-1)*$posterPerSida;
+    $stmt=$db->query("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
+            . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetid=a.id "
+            . "ORDER BY datum "
+            . "LIMIT $forstaPost, $posterPerSida");
     $result=$stmt->fetchAll();
 
-    $uppgifter = [];
-    foreach($result as $row) {
-        $rad = new stdClass();
-        $rad->id = $row["id"];
-        $rad->activityId=$row["aktivitetId"];
-        $rad->date=$row["datum"];
-        $rad->time=$row["tid"];
-        $tid = new DateTime($row["tid"]);
-        $rad->time = $tid->format("H:i");
-        $rad->activity = $row["namn"];
-        $rad->description = $row["beskrivning"];
-        $uppgifter[] = $rad;
-
+    $uppgifter=[];
+    foreach ($result as $row) {
+        $rad=new stdClass();
+        $rad->id=$row['id'];
+        $rad->activityId=$row['aktivitetId'];
+        $rad->date=$row['datum'];
+        $tid=new DateTime($row['tid']);
+        $rad->time=$tid->format("H:i");
+        $rad->activity=$row['namn'];
+        $rad->description=$row['beskrivning'];
+        $uppgifter[]=$rad;
     }
-
-    //Returnera svar
-    $retur = new stdClass();
+    
+    // Returnera svar
+    $retur=new stdClass();
     $retur->pages=$antalSidor;
     $retur->tasks=$uppgifter;
-
+    
     return new Response($retur);
-
 }
 
 /**
@@ -123,61 +117,59 @@ function hamtaSida(string $sida, int $posterPerSida=10): Response {
  * @return Response
  */
 function hamtaDatum(string $from, string $tom): Response {
-
-    //kontrollera indata
-    $fromDate = DateTimeImmutable::createFromFormat("Y-m-d", $from);
-    $tomDate = DateTimeImmutable::createFromFormat("Y-m-d", $tom);
-    $datumFel = [];
-
-    if($fromDate === false) {
-        $datumFel[] = "Ogiltig från datum";
+    // Kontrollera indata
+    $fromDate= DateTimeImmutable::createFromFormat("Y-m-d", $from);
+    $tomDate= DateTimeImmutable::createFromFormat("Y-m-d", $tom);
+    $datumFel=[];
+    
+    if($fromDate===false) {
+        $datumFel[]="Ogiltig från-datum";
     }
-    if($tomDate === false) {
-        $datumFel[] = "Ogiltig till datum";
+    if($tomDate===false) {
+        $datumFel[]="Ogiltig till-datum";
     }
     if($fromDate && $fromDate->format("Y-m-d")!==$from) {
-        $datumFel[] = "Ogiltig angivet från-datum";
+        $datumFel[]="Ogiltigt angivet från-datum";
     }
     if($tomDate && $tomDate->format("Y-m-d")!==$tom) {
-        $datumFel[] = "Ogiltig angivet till-datum";
+        $datumFel[]="Ogiltigt angivet till-datum";
     }
-    if($fromDate && $tomDate &&$fromDate->format("Y-m-d") > $tomDate->format("Y-m-d")) {
-        $datumFel[] = "Från-datum får inte vara större än till datum";
+    if($fromDate && $tomDate && $fromDate->format('Y-m-d')>$tomDate->format('Y-m-d')) {
+        $datumFel[]="Från-datum får inte vara större än till-datum";
     }
-
+    
     if(count($datumFel)>0) {
-        $retur = new stdClass();
-        $retur->error = $datumFel;
-        array_unshift($retur->error, "Bad request");
+        $retur= new stdClass();
+        $retur->error=$datumFel;
+        array_unshift($retur->error, 'Bad request');
         return new Response($retur, 400);
     }
-    //koppla databas
-    $db = connectDb();
-
-    //exekvera sql
-    $stmt = $db->prepare("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
-    . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
-    . "WHERE datum BETWEEN :from AND :to "
-    . "ORDER BY datum ");
-    $stmt->execute(["from"=>$fromDate->format("Y-m-d"), "to"=>$tomDate->format("Y-m-d")]);
+    // Koppla databas
+    $db= connectDb();
+    
+    // Exekvera sql
+    $stmt=$db->prepare("SELECT u.id, datum, tid, beskrivning, aktivitetId, namn "
+            . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetid=a.id "
+            . "WHERE datum BETWEEN :from AND :to "
+            . "ORDER BY datum ");
+    $stmt->execute(['from'=>$fromDate->format('Y-m-d'), 'to'=>$tomDate->format('Y-m-d')]);
     $result=$stmt->fetchAll();
 
-    $uppgifter = [];
-    foreach($result as $row) {
-        $rad = new stdClass();
-        $rad->id = $row["id"];
-        $rad->activityId=$row["aktivitetId"];
-        $rad->date=$row["datum"];
-        $rad->time=$row["tid"];
-        $tid = new DateTime($row["tid"]);
-        $rad->time = $tid->format("H:i");
-        $rad->activityId = $row["namn"];
-        $rad->description = $row["beskrivning"];
-        $uppgifter[] = $rad;
+    $uppgifter=[];
+    foreach ($result as $row) {
+        $rad=new stdClass();
+        $rad->id=$row['id'];
+        $rad->activityId=$row['aktivitetId'];
+        $rad->date=$row['datum'];
+        $tid=new DateTime($row['tid']);
+        $rad->time=$tid->format("H:i");
+        $rad->activity=$row['namn'];
+        $rad->description=$row['beskrivning'];
+        $uppgifter[]=$rad;
     }
-
-    //returnera svar
-    $retur = new stdClass();
+    
+    // Returnera svar
+    $retur=new stdClass();
     $retur->tasks=$uppgifter;
     return new Response($retur);
 }
@@ -189,42 +181,43 @@ function hamtaDatum(string $from, string $tom): Response {
  */
 function hamtaEnskildUppgift(string $id): Response {
     // Kontrollera indata
-    $kontrolleraId=filter_var($id, FILTER_VALIDATE_INT);
-    if(!$kontrolleraId) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Felaktigt angivet id"];
+    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+    if(!$kontrolleratId){
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'Felaktigt angivet id'];
         return new Response($retur, 400);
     }
-
-    if($kontrolleraId && $kontrolleraId<1) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Ogiltigt angivet id"];
+    
+    if($kontrolleratId && $kontrolleratId<1) {
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'Ogiltigt id '];
         return new Response($retur, 400);
     }
-
+    
     // Koppla databas
-    $db = connectDb();
-
+    $db= connectDb();
+    
     // Exekvera SQL
-    $stmt = $db->prepare("SELECT u.id, tid, datum, beskrivning, aktivitetid, namn " 
-    . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
-    . "WHERE u.id=:id");
-    $stmt->execute(['id'=>$kontrolleraId]);
-
+    $stmt=$db->prepare("SELECT u.id, tid, datum, beskrivning, aktivitetid, namn "
+            . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
+            . "WHERE u.id=:id");
+    $stmt->execute(['id'=>$kontrolleratId]);
+ 
     // Returnera svar
     if($row=$stmt->fetch()) {
-        $retur = new stdClass();
-        $retur->id = $row['id'];
-        $retur->date = $row['datum'];
-        $retur->time =substr($row['tid'], 0, -3);
-        $retur->activity = $row['namn'];
-        $retur->activityId = $row['aktivitetid'];
+        $retur=new stdClass();
+        $retur->id=$row['id'];
+        $retur->date=$row['datum'];
+        $retur->time=substr($row['tid'], 0,-3);
+        $retur->activity=$row['namn'];
+        $retur->activityId=$row['aktivitetid'];
         return new Response($retur);
     } else {
-        $retur = new stdClass();
-        $retur->error = ["Hämta misslyckades", "Kunde inte hitta uppgift med angivet id"];
+        $retur=new stdClass();
+        $retur->error=['Hämta misslyckades','Kunde inte hitta uppgift med angivet id'];
         return new Response($retur, 400);
     }
+    
 }
 
 /**
@@ -235,37 +228,35 @@ function hamtaEnskildUppgift(string $id): Response {
 function sparaNyUppgift(array $postData): Response {
     // Kontrollera indata
     $felmeddelande=kontrolleraIndata($postData);
-
+    
     if(count($felmeddelande)>0) {
-        $retur = new stdClass();
-        $retur->error = $felmeddelande;
-        array_unshift($retur->error, "Bad request");
+        $retur=new stdClass();
+        $retur->error=$felmeddelande;
+        array_unshift($retur->error, 'Bad request');
         return new Response($retur, 400);
     }
-
-    // koppla databas
-    $db = connectDb();
-
-    // Exekvera databas
-    $stmt = $db->prepare("INSERT INTO uppgifter (datum, tid, beskrivning, aktivitetId)" 
-    . " VALUES (:datum, :tid, :beskrivning, :aktivitetId)");
-    $stmt->execute(['datum'=>$postData["date"], "tid"=>$postData["time"], 
-    "beskrivning"=> trim(filter_var($postData["description"]??'', FILTER_SANITIZE_SPECIAL_CHARS)),
-     "aktivitetId"=>$postData["activityId"]??'']);
-
+    
+    // Koppla databas
+    $db= connectDb();
+    
+    // Exekvera databasfråga
+    $stmt=$db->prepare("INSERT INTO uppgifter (datum, tid, beskrivning, aktivitetid) " 
+            . "VALUES (:datum, :tid, :beskrivning, :aktivitetid)");
+    $stmt->execute(['datum'=>$postData['date'], 'tid'=>$postData['time'],
+        'beskrivning' => trim(filter_var($postData['description'] ?? '', FILTER_SANITIZE_SPECIAL_CHARS)),
+        'aktivitetid'=>$postData['activityId']]);
+    
     // Kontrollera svaret
     if($stmt->rowCount()===1) {
-        $retur = new stdClass();
-        $retur->id= $db->lastInsertId();
-        $retur->message = ["Skapa ny post lyckades" , "1 post skapad"];
+        $retur=new stdClass();
+        $retur->id=$db->lastInsertId();
+        $retur->message=['Skapa ny post lyckades', '1 post sparad'];
         return new Response($retur);
     } else {
-        $retur = new stdClass();
-        $retur->error = ["Fel vid databasanrop", "Kunde inte skapa post"];
+        $retur=new stdClass();
+        $retur->error=['Fel vid databasanrop', 'Kunde inte skapa post'];
         return new Response($retur, 400);
     }
-
-    // Skicka utdata
 }
 
 /**
@@ -276,52 +267,52 @@ function sparaNyUppgift(array $postData): Response {
  */
 function uppdateraUppgift(string $id, array $postData): Response {
     /*
-    * Kontrollera indata
-    */
+     *  Kontrollera indata
+     */
     // Kontrollera id
-    $kontrolleratId=filter_var($id, FILTER_VALIDATE_INT);
-    if(!$kontrolleratId) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Felaktigt id"];
+    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+    if (!$kontrolleratId) {
+        $retur=new stdClass();
+        $retur->error=['Bad request', "Felaktigt id"];
         return new Response($retur, 400);
     }
     if($kontrolleratId<1) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Ogiltigt id"];
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'Ogiltigt id'];
         return new Response($retur, 400);
     }
-
+    
     // Kontrollera postdata
     $error= kontrolleraIndata($postData);
     if(count($error)!==0) {
         $retur = new stdClass();
-        $retur->error = $error;
+        $retur->error=$error;
         return new Response($retur, 400);
     }
-
+    
     // Koppla databas
-    $db = connectDb();
-
+    $db= connectDb();
+    
     // Exekvera databasfråga
-    $stmt = $db->prepare("UPDATE uppgifter SET "
-    . "datum=:date, tid=:time, aktivitetId=:activityId, beskrivning=:description "
-    . "WHERE id=:id");
-    $stmt->execute(['date'=>$postData["date"], "time"=>$postData["time"], "activityId"=>$postData["activityId"], 
-    "description"=>$postData["description"] ??'', "id"=>$kontrolleratId]);
+    $stmt=$db->prepare("UPDATE uppgifter SET "
+            . "datum=:date, tid=:time, aktivitetid=:activityid, beskrivning=:description "
+            . "WHERE id=:id");
+    $stmt->execute(['date'=>$postData['date'], 'time'=>$postData['time'], 'activityid'=>$postData['activityId'],
+        'description'=>$postData['description'] ?? '', 'id'=>$kontrolleratId]);
 
     // Returnera svar
     if($stmt->rowCount()===1) {
-        $retur = new stdClass();
+        $retur=new stdClass();
         $retur->result=true;
-        $retur->message = ["Uppdatering lyckades", "1 post uppdaterad"];
+        $retur->message=['Uppdatering lyckades', '1 post uppdaterad'];
     } else {
-        $retur = new stdClass();
+        $retur=new stdClass();
         $retur->result=false;
-        $retur->message = ["Uppdatering misslyckades", "Ingen post uppdaterad"];
+        $retur->message=['Uppdatering misslyckades', 'Ingen post uppdaterad'];
     }
-
+    
     return new Response($retur);
-
+    
 }
 
 /**
@@ -330,38 +321,38 @@ function uppdateraUppgift(string $id, array $postData): Response {
  * @return Response
  */
 function raderaUppgift(string $id): Response {
-       // Kontrollera indata
-       $kontrolleraId=filter_var($id, FILTER_VALIDATE_INT);
-    if(!$kontrolleraId) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Felaktigt angivet id"];
+    // Kontrollera indata
+    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+    if(!$kontrolleratId){
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'Felaktigt angivet id'];
         return new Response($retur, 400);
     }
-
-    if($kontrolleraId && $kontrolleraId<1) {
-        $retur = new stdClass();
-        $retur->error = ["Bad request", "Ogiltigt angivet id"];
+    
+    if($kontrolleratId && $kontrolleratId<1) {
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'Ogiltigt id '];
         return new Response($retur, 400);
     }
-
-       // Koppla databas
-       $db = connectDb();
-
-       // Exekvera databasfråga
-       $stmt = $db->prepare("DELETE FROM uppgifter WHERE id=:id");
-       $stmt->execute(['id'=>$kontrolleraId]);
-
-       // Returnera svar
-       if($stmt->rowCount()===1) {
-        $retur = new stdClass();
+    
+    // Koppla databas
+    $db= connectDb();
+    
+    // Exekvera databasfråga
+    $stmt=$db->prepare("DELETE FROM uppgifter WHERE id=:id");
+    $stmt->execute(['id'=>$kontrolleratId]);
+    
+    // Returnera svar
+    if($stmt->rowCount()===1) {
+        $retur=new stdClass();
         $retur->result=true;
-        $retur->message = ["Radering lyckades", "1 post raderad"];
+        $retur->message=['Radering lyckades', '1 post raderad'];
     } else {
-        $retur = new stdClass();
+        $retur=new stdClass();
         $retur->result=false;
-        $retur->message = ["Radering misslyckades", "Ingen post raderad"];
+        $retur->message=['Radering misslyckades', 'Ingen post raderad'];
     }
-
+    
     return new Response($retur);
 
 }

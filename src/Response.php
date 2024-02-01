@@ -2,11 +2,6 @@
 
 declare (strict_types=1);
 
-/**
- * Klass för hantering av svar som ska skickas till klient
- *
- * @author kjellh
- */
 class Response {
 
     public function __construct(private string|array|stdClass $content, private int $status = 200) {
@@ -35,8 +30,8 @@ class Response {
      * @return never
      */
     public function skickaJSON(): never {
-        http_response_code ($this->status);
-        header("Content-type:application/json;charset=utf-8");
+        http_response_code($this->status);
+        header("Content-Type: application/json; charset=UTF-8");
         $json = json_encode($this->content, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
         echo $json;
         exit;

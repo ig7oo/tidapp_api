@@ -2,11 +2,6 @@
 
 declare (strict_types=1);
 
-/**
- * Klass för att hantera ruttinformation
- *
- * @author kjellh
- */
 class Route {
 
     public function __construct(private string $route, private array $params, private RequestMethod $method) {

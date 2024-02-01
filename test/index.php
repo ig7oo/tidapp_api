@@ -21,36 +21,36 @@ switch (count($route->getParams())) {
         break;
     case 1: // En parameter - testa en avdelning
         switch ($route->getParams()[0]) {
-            case "activity":
-//                require_once './TestActivities.php';
-//                $html = allaActivityTester();
-//                break;
-            case "tasklist":
-//                require_once './TestTasks.php';
-//                $html = allaTasklistTester();
-//                break;
-            case "task":
-//                require_once './TestTasks.php';
-//                $html = allaTaskTester();
-//                break;
-            case "compilation":
-//                require_once './TestCompilation.php';
-//                $html = allaCompilationTester();
-//                break;
-            default: // Ingen träff - visa info
-                $html = ingenRutt($route->getParams()[0]);
-                break;
-        }
-        break;
-    case 2: // Två parametrar testa enskilda funktioner
-        switch ($route->getParams()[0]) {
-            case "activity":
-            case "tasklist":
-            case "task":
-            case "compilation":
-//                $html = testFunction($route->getParams()[1]);
-//                break;
-            default: // Ingen träff - visa info
+         case "activity":
+               require_once './TestActivities.php';
+               $html = allaActivityTester();
+               break;
+         case "tasklist":
+               require_once './TestTasks.php';
+               $html = allaTasklistTester();
+               break;
+         case "task":
+               require_once './TestTasks.php';
+               $html = allaTaskTester();
+               break;
+         case "compilation":
+               require_once './TestCompilation.php';
+               $html = allaCompilationTester();
+               break;
+         default: // Ingen träff - visa info
+             $html = ingenRutt($route->getParams()[0]);
+             break;
+     }
+     break;
+ case 2: // Två parametrar testa enskilda funktioner
+     switch ($route->getParams()[0]) {
+         case "activity":
+         case "tasklist":
+         case "task":
+         case "compilation":
+               $html = testFunction($route->getParams()[1]);
+               break;
+         default: // Ingen träff - visa info
                 $html = ingenRutt($route->getParams()[0]);
                 break;
         }
