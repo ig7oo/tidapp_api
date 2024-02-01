@@ -22,21 +22,21 @@ switch (count($route->getParams())) {
     case 1: // En parameter - testa en avdelning
         switch ($route->getParams()[0]) {
          case "activity":
-               require_once './TestActivities.php';
-               $html = allaActivityTester();
-               break;
+   //          require_once './TestActivities.php';
+   //          $html = allaActivityTester();
+   //          break;
          case "tasklist":
-               require_once './TestTasks.php';
-               $html = allaTasklistTester();
-               break;
+    //         require_once './TestTasks.php';
+    //         $html = allaTasklistTester();
+    //         break;
          case "task":
-               require_once './TestTasks.php';
-               $html = allaTaskTester();
-               break;
+    //         require_once './TestTasks.php';
+    //         $html = allaTaskTester();
+    //         break;
          case "compilation":
-               require_once './TestCompilation.php';
-               $html = allaCompilationTester();
-               break;
+    //         require_once './TestCompilation.php';
+    //         $html = allaCompilationTester();
+    //         break;
          default: // Ingen träff - visa info
              $html = ingenRutt($route->getParams()[0]);
              break;
